@@ -1,0 +1,19 @@
+.scrollview(@a) {
+
+    h1 {
+        color: #666;
+        height: 2 * @a;
+        font-size: 26px;
+        span {
+            color: #999;
+        }
+    }
+
+    [data-dpr="1"] h1 {
+        font-size: 26px;
+    }
+
+    [data-dpr="2"] h1 {
+        font-size: 52px;
+    }
+}
