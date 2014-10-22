@@ -76,6 +76,14 @@ module.exports = function(grunt) {
             }
         },
 
+        css2js: {
+            main: {
+                files: {
+                    '<%= distPath%>/<%= name%>_css.js': ['<%= distPath%>/<%= name%>.css']
+                }
+            }
+        },
+
         watch: {
             combo: {
                 files: ['package.json'],
@@ -140,6 +148,7 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-depconcat');
     grunt.loadNpmTasks('grunt-depcombo');
     grunt.loadNpmTasks('grunt-cmdwrap');
+    grunt.loadNpmTasks('grunt-css2js');
     grunt.loadNpmTasks('grunt-contrib-clean');
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-contrib-uglify');
@@ -148,7 +157,7 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-watch');
 
 
-    grunt.registerTask('dist', ['clean', 'copy', 'depconcat', 'uglify', 'less', 'cssmin', 'depcombo', 'cmdwrap']);
+    grunt.registerTask('dist', ['clean', 'copy', 'depconcat', 'uglify', 'less', 'cssmin', 'css2js','depcombo', 'cmdwrap']);
     grunt.registerTask('dev', ['watch']);
 
     grunt.registerTask('default', ['dist']);
