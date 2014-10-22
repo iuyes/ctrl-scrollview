@@ -101,7 +101,7 @@ function ScrollView(scrollWrap, options) {
 
             var opt = {};
 
-            if (v instanceof HTMLElement) {
+            if (v instanceof HTMLElement || typeof v === 'string') {
                 scroll.enablePlugin('fixed', {
                     topElement: v
                 });
@@ -276,7 +276,7 @@ function ScrollView(scrollWrap, options) {
                 element.innerHTML = content;
             } else if (content instanceof HTMLElement) {
                 element.innerHTML = '';
-                element.appendChild(HTMLElement);
+                element.appendChild(content);
             } else if (content instanceof Array || content instanceof NodeList) {
                 var fragment = doc.createDocumentFragment();
                 Array.prototype.slice.call(content).forEach(function(node) {

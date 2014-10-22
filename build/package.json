@@ -35,7 +35,8 @@
   "dependencies": {},
   "combo": {
     "lib.scroll": "2.3.11",
-    "ctrl.loading": "0.1.5"
+    "lib.scroll/plugin": "2.3.11",
+    "ctrl.loading": "0.1.6"
   },
   "keywords": [
     "ctrl",
