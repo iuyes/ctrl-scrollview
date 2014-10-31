@@ -1,7 +1,7 @@
 {
   "name": "ctrl.scrollview",
   "description": "滚动视图控件",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "homepage": "http://gitlab.alibaba-inc.com/mtb/ctrl-scrollview",
   "author": [
     "渚薰"
