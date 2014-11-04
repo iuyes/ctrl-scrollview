@@ -1,5 +1,7 @@
 ;(function (win, lib, ctrl) {
 var doc = win.document;
+var isIEMobile = win.navigator.userAgent.match(/IEMobile\/([\d\.]+)/);
+var stylePrefix = !!isIEMobile?'ms':'webkit';
 
 var incId = 0;
 function ScrollView(scrollWrap, options) {

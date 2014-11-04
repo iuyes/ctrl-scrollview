@@ -1,1 +1,1 @@
-define('mtb/ctrl-scrollview/0.1.3/scrollview.css',[],function(){$.importStyle('[data-ctrl-name=scrollview]{width:100%;height:100%;overflow:hidden;position:relative}[data-ctrl-name=scrollview] .scroll-view{width:100%;position:absolute}')});
+define('mtb/ctrl-scrollview/0.1.4/scrollview.css',[],function(){$.importStyle('[data-ctrl-name=scrollview]{width:100%;height:100%;overflow:hidden;position:relative}[data-ctrl-name=scrollview] .scroll-view{width:100%;position:absolute}')});
