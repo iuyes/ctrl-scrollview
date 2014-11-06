@@ -1,7 +1,7 @@
 {
   "name": "ctrl.scrollview",
   "description": "滚动视图控件",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "homepage": "http://gitlab.alibaba-inc.com/mtb/ctrl-scrollview",
   "author": [
     "渚薰"
@@ -34,8 +34,8 @@
   },
   "dependencies": {},
   "combo": {
-    "lib.scroll": "2.4.3",
-    "lib.scroll/plugin": "2.4.3",
+    "lib.scroll": "2.4.4",
+    "lib.scroll/plugin": "2.4.4",
     "ctrl.loading": "0.1.8",
     "ctrl.loading/loading_css": "0.1.8"
   },
