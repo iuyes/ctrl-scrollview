@@ -34,8 +34,8 @@
   },
   "dependencies": {},
   "combo": {
-    "lib.scroll": "2.4.2",
-    "lib.scroll/plugin": "2.4.2",
+    "lib.scroll": "2.4.3",
+    "lib.scroll/plugin": "2.4.3",
     "ctrl.loading": "0.1.8",
     "ctrl.loading/loading_css": "0.1.8"
   },
