@@ -34,7 +34,6 @@
   },
   "dependencies": {},
   "combo": {
-    "lib.scroll": "2.4.4",
     "ctrl.loading": "0.1.9",
     "ctrl.loading/loading_css": "0.1.9"
   },

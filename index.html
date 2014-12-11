@@ -57,6 +57,7 @@
         background-repeat: no-repeat;
         background-position: 100px center;
         background-size: 16px 16px;
+        overflow: hidden;
     }
 
     ul li:nth-child(2n) {
@@ -65,6 +66,21 @@
 
     ul li:last-child {
         border-bottom: 0;
+    }
+
+    ul li[sticky] {
+        background: #DDD;
+    }
+
+    .page-header {
+        background-color: #DDD;
+        color: #333;
+        font-size: 0.5rem;
+        height: 1.5rem;
+        line-height: 1.5rem;
+        margin: 0;
+        padding: 0;
+        border: 0;
     }
 </style>
 </head>
@@ -119,10 +135,12 @@
             useFrameAnimation: true
         });
 
+        // 固顶的用法
         scrollView.fixed.topElement = headerHTML;
         scrollView.fixed.bottomElement = footerHTML;
         scrollView.fixed.enable = true;
 
+        // 懒加载的用法
         scrollView.lazyload.realtime = true;
         scrollView.lazyload.handler = function(el) {
             el.style[stylePrefix + 'Transition'] = 'background-color 1.5s ease 0, color 1.5s ease-out 0, border-bottom-color 1.5s ease-in 0';
@@ -131,6 +149,40 @@
             el.style.borderBottomColor = '#EEE';
         }
         scrollView.lazyload.enable = true;
+
+        // 吸顶的用法
+        scrollView.sticky.enable = true;
+
+        scrollView.pullRefresh.handler = function(done) {
+            page = 1;
+            setTimeout(function() {
+                var fragment = render();
+                scrollView.content = contentHTML;
+                scrollView.scrollElement.querySelector('.row ul').appendChild(fragment);
+                scrollView.pullUpdate.enable = true;
+                done();
+            }, 2000);
+        }
+        scrollView.pullRefresh.enable = true;
+
+        scrollView.pullUpdate.handler = function(done) {
+            if (page < 10) {
+                page++;
+                setTimeout(function() {
+                    var fragment = render();
+                    scrollView.scrollElement.querySelector('.row ul').appendChild(fragment);
+                    done();
+                }, 500);
+            } else {
+                var li = document.createElement('li');
+                li.innerHTML = '<center>没有数据了</center>';
+                scrollView.scrollElement.querySelector('.row ul').appendChild(li);
+                scrollView.pullUpdate.enable = false;
+                done();
+            }
+            
+        }
+        scrollView.pullUpdate.enable = true;
 
         // scrollView.plugin.refresh = true;
         // scrollView.plugin.update = true;
@@ -149,16 +201,19 @@
         //     }, 1000);
         // }, false);
 
-        var floor = 1;
+        var page = 1;
         function render() {
             var fragment = document.createDocumentFragment();
-            for (var i = 0; i < 20; i++) {
+            var li = document.createElement('li');
+            li.setAttribute('sticky', 'true');
+            li.innerHTML = '<center class="page-header">PAGE ' + page + '</center>';
+            fragment.appendChild(li);
+            for (var j = 1; j <= 20; j++) {
                 var li = document.createElement('li');
-                li.innerHTML = 'FLOOR ' + floor;
-                li.className = 'lazy';
-                li.setAttribute('data-image', 'http://img02.taobaocdn.com/bao/uploaded/i4/TB11geGGpXXXXbSXVXXXXXXXXXX_!!0-item_pic.jpg_q50.jpg?_t=' + i);
+                li.innerHTML = 'item ' + ((page - 1) * 20 + j);
+                li.setAttribute('lazyload', 'true');
+                li.setAttribute('data-image', 'http://img02.taobaocdn.com/bao/uploaded/i4/TB11geGGpXXXXbSXVXXXXXXXXXX_!!0-item_pic.jpg_q50.jpg?_t=' + ((page - 1) * 20 + j));
                 fragment.appendChild(li);
-                floor++;
             }
             return fragment;
         }
@@ -169,6 +224,8 @@
         scrollView.scrollElement.querySelector('.row ul').appendChild(fragment);
         document.body.appendChild(scrollView.root);
         scrollView.init();
+
+        window.scrollView = scrollView;
     })();
 </script>
 </body>

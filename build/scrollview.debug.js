@@ -22,6 +22,54 @@ function setHTMLElement(parent, child) {
     }
 }
 
+function getTransformOffset(element) {
+    var offset = {x: 0, y: 0}; 
+    var transform = getComputedStyle(element)[stylePrefix + 'Transform'];
+    var matched;
+
+    if (transform !== 'none') {
+        if ((matched = transform.match(/^matrix3d\((?:[-\d.]+,\s*){12}([-\d.]+),\s*([-\d.]+)(?:,\s*[-\d.]+){2}\)/) ||
+                transform.match(/^matrix\((?:[-\d.]+,\s*){4}([-\d.]+),\s*([-\d.]+)\)$/))) {
+            offset.x = parseFloat(matched[1]) || 0;
+            offset.y = parseFloat(matched[2]) || 0;
+        }
+    }
+
+    return offset;
+}
+
+var has3d = 'WebKitCSSMatrix' in window && 'm11' in new WebKitCSSMatrix();
+function getTranslate(x, y) {
+    x = parseFloat(x);
+    y = parseFloat(y);
+
+    if (x != 0) {
+        x += 'px';
+    }
+
+    if (y != 0) {
+        y += 'px';
+    }
+
+    if (has3d) {
+        return 'translate3d(' + x + ', ' + y + ', 0)';
+    } else {
+        return 'translate(' + x + ', ' + y + ')';
+    }
+}
+
+function setTransitionStyle(element, duration, timingFunction) {
+    if (arguments.length === 1) {
+        element.style[stylePrefix + 'Transition'] = '';    
+    } else {
+        element.style[stylePrefix + 'Transition'] = cssPrefix + 'transform ' + duration + ' ' + timingFunction + ' 0s';
+    }
+}
+
+function setTransformStyle(element, x, y) {
+    element.style[stylePrefix + 'Transform'] = getTranslate(x, y);
+}
+
 var incId = 0;
 function ScrollView(root, options) {
 
@@ -33,7 +81,7 @@ function ScrollView(root, options) {
                 ev[key] = extra[key];
             }
         }
-        root.dispatchEvent(ev);
+        scroll.element.dispatchEvent(ev);
     }
 
     var that = this;
@@ -110,192 +158,93 @@ function ScrollView(root, options) {
         value: new Lazyload(this)
     });
 
-    /*
-    Object.defineProperty(this, 'plugin', {
-        get: function() {
-            return plugins;
-        }
+    Object.defineProperty(this, 'sticky', {
+        value: new Sticky(this)
     });
 
-    Object.defineProperty(plugins, 'forceRepaint', {
-        set: function(v) {
-            if (!!v) {
-                scroll.enablePlugin('force-repaint');
-            }
-        }
-    });
-    
-    Object.defineProperty(plugins, 'fixed', {
-        set: function(v) {
-            if (!v) return;
-
-            var opt = {};
-
-            if (v instanceof HTMLElement || typeof v === 'string') {
-                scroll.enablePlugin('fixed', {
-                    topElement: v
-                });
-            } else if (typeof v === 'object') {
-                var name = ['top', 'bottom', 'left', 'right'].filter(function(n) {
-                    return v[n] != null;
-                })[0];
-                if (name) {
-                    opt[name + 'Offset'] = v[name];
-                    opt[name + 'Element'] = v.element;
-                } else {
-                    opt = v;
-                }
-                scroll.enablePlugin('fixed', opt);
-            }
-        }
+    Object.defineProperty(this, 'pullRefresh', {
+        value: new Refresh(this)
     });
 
-    Object.defineProperty(plugins, 'lazyload', {
-        set: function(v) {
-            if (!v) return;
+    // refersh init
+    (function() {
+        if (scroll.axis !== 'y') return;
 
-            scroll.enablePlugin('lazyload', {
-                realTimeLoad: v===true?true:!!v.realTimeLoad,
-                onlazyload: function() {
-                    fireEvent('plugin:lazyload');
-                    v.onlazyload && v.onlazyload.apply(v, arguments);
-                }
-            });
+        var height = win.dpr?win.dpr * 60:60;
+        var processingText = '下拉即可刷新...';
+        var refreshText = '正在刷新...';
 
-            if (v.onlazyload) {
-                that.addEventListener('plugin:lazyload', v.onlazyload);
-            }
-        }
-    });
+        var refreshLoading = new ctrl.loading();
+        refreshLoading.arrowDirection = 'down';
+        refreshLoading.mode = 'draw';
+        refreshLoading.text = processingText;
+        var element = refreshLoading.element;
 
-    Object.defineProperty(plugins, 'sticky', {
-        set: function(v) {
-            if (!v) return;
-
-            if (v === true) {
-                scroll.enablePlugin('sticky');
-            } else if (!!v && typeof v === 'object'){
-                scroll.enablePlugin('sticky', v);
-            }
-        }
-    });
-
-    Object.defineProperty(plugins, 'refresh', {
-        set: function(v) {
-            if (!v) return;
-
-            var height = win.rem?3 * win.rem:60;
-            var pullingText = '下拉即可刷新...';
-            var processingText = '正在刷新...';
-            var refreshLoading;
-            var element;
-
-            if (!!v && typeof v === 'object') {
-                height = v.height || height;
-                element = v.element || element;
-                pullingText = (v.text || [])[0] || v.pullingText || pullingText;
-                processingText = (v.text || [])[1] || v.processingText || processingText;
-            }
-
-            if (!element) {
-                refreshLoading = new ctrl.loading();
-                refreshLoading.arrowDirection = 'down';
+        that.pullRefresh.element = element;
+        that.pullRefresh.height = height;
+        that.pullRefresh.processingHandler = function(offset) {
+            if (refreshLoading.mode !== 'draw') {
                 refreshLoading.mode = 'draw';
-                refreshLoading.text = pullingText;
-                element = refreshLoading.element;
             }
-
-            scroll.enablePlugin('refresh', {
-                height: height,
-                element: element,
-                onpull: function(top) {
-                    if (refreshLoading) {
-                        refreshLoading.per = Math.round(top/height * 100);
-                    }
-                    fireEvent('plugin:refresh:pull');
-                    v.onpull && v.onpull.apply(v, arguments);
-                },
-                onrefresh: function(done) {
-                    var isDone = false;
-                    function _done() {
-                        if (isDone) return;
-                        isDone = true;
-
-                        done();
-                        if (refreshLoading) {
-                            refreshLoading.text = pullingText;
-                            refreshLoading.mode = 'draw';
-                        }
-                    }
-
-                    if (refreshLoading) {
-                        refreshLoading.text = processingText;
-                        refreshLoading.mode = 'spin';
-                    }
-
-                    fireEvent('plugin:refresh', {
-                        done: _done
-                    });
-                    v.onrefresh && v.onrefresh(_done);
-                }
+            if (refreshLoading.text !== processingText) {
+                refreshLoading.text = processingText;
+            }
+            refreshLoading.per = Math.round(offset/height * 100);
+        }
+        that.pullRefresh.refreshHandler = function(done) {
+            var isDone = false;
+            refreshLoading.text = refreshText;
+            refreshLoading.mode = 'spin';
+            that.pullRefresh.handler && that.pullRefresh.handler(function () {
+                if (isDone) return;
+                isDone = true;
+                done();
             });
         }
+    })();
+
+    Object.defineProperty(this, 'pullUpdate', {
+        value: new Update(this)
     });
 
-    Object.defineProperty(plugins, 'update', {
-        set: function(v) {
-            if (!v) return;
+    // update init
+    (function() {
+        if (scroll.axis !== 'y') return;
 
-            var height = win.rem?3 * win.rem:60;
-            var pullingText = '上拉加载更多...';
-            var processingText = '正在加载...';
-            var updateLoading;
-            var element;
+        var height = win.dpr?win.dpr * 60:60;
+        var processingText = '上拉加载更多...';
+        var updateText = '正在加载...';
 
-            if (!!v && typeof v === 'object') {
-                height = v.height || height;
-                element = v.element || element;
-                pullingText = (v.text || [])[0] || v.pullingText || pullingText;
-                processingText = (v.text || [])[1] || v.processingText || processingText;
-            }
+        var updateLoading = new ctrl.loading();
+        updateLoading.arrowDirection = 'up';
+        updateLoading.mode = 'draw';
+        updateLoading.text = processingText;
+        var element = updateLoading.element;
 
-            if (!element) {
-                var updateLoading = new ctrl.loading();
-                updateLoading.arrowDirection = 'up';
+        that.pullUpdate.element = element;
+        that.pullUpdate.height = height;
+
+        that.pullUpdate.processingHandler = function(offset) {
+            if (updateLoading.mode !== 'draw') {
                 updateLoading.mode = 'draw';
-                updateLoading.text = pullingText;
-                element = updateLoading.element;
             }
+            if (updateLoading.text !== processingText) {
+                updateLoading.text = processingText;
+            }
+            updateLoading.per = Math.round(offset/height * 100);
+        }
 
-            scroll.enablePlugin('update', {
-                height: height,
-                element: element,
-                onupdate: function(done) {
-                    var isDone = false;
-                    function _done() {
-                        if (isDone) return;
-                        isDone = true;
-                        
-                        done();
-                        if (updateLoading) {
-                            updateLoading.text = pullingText;
-                            updateLoading.mode = 'draw';
-                        }
-                    }
-
-                    if (updateLoading) {
-                        updateLoading.text = processingText;
-                        updateLoading.mode = 'spin';
-                    }
-                    fireEvent('plugin:update', {
-                        done: _done
-                    });
-                    v.onupdate && v.onupdate(_done);
-                }
+        that.pullUpdate.updateHandler = function(done) {
+            var isDone = false;
+            updateLoading.text = updateText;
+            updateLoading.mode = 'spin';
+            that.pullUpdate.handler && that.pullUpdate.handler(function () {
+                if (isDone) return;
+                isDone = true;
+                done();
             });
         }
-    });
-    */
+    })();
 
     Object.defineProperty(this, 'content', {
         get: function() {
@@ -506,7 +455,7 @@ function Lazyload(view) {
     function checkLazyload(){
         if (!enable) return;
 
-        var elements = Array.prototype.slice.call(scroll.element.querySelectorAll('.lazy'));
+        var elements = Array.prototype.slice.call(scroll.element.querySelectorAll('*[lazyload="true"]'));
 
         elements.filter(function(el){
             return scroll.isInView(el);
@@ -519,8 +468,8 @@ function Lazyload(view) {
                 bglist = [];
             } else {
                 imglist = Array.prototype.slice.call(el.querySelectorAll('img[data-src]'));
-                bglist = Array.prototype.slice.call(el.querySelectorAll('*[data-image], *[data-background-image]'));
-                if (el.hasAttribute('data-image') || el.hasAttribute('data-background-image')) {
+                bglist = Array.prototype.slice.call(el.querySelectorAll('*[data-image]'));
+                if (el.hasAttribute('data-image')) {
                     bglist.push(el);
                 }
             }
@@ -536,7 +485,7 @@ function Lazyload(view) {
             });
 
             bglist.forEach(function(bg) {
-                var attr = bg.hasAttribute('data-image')?'data-image':'data-background-image';
+                var attr = bg.hasAttribute('data-image');
                 var image = bg.getAttribute(attr);
                 if (image) {
                     bg.removeAttribute(attr);
@@ -547,10 +496,7 @@ function Lazyload(view) {
             });
 
             lazyloadHandler && lazyloadHandler(el);
-
-            el.className = el.className.split(' ').filter(function(c) {
-                return c !== 'lazy';
-            }).join(' ');
+            el.removeAttribute('lazyload');
         });
     }
 
@@ -607,6 +553,402 @@ function Lazyload(view) {
     });
 
     view.checkLazyload = checkLazyload;
+}
+
+function Sticky(view) {
+    var that = this;
+    var scroll = view.scroll;
+    
+    var stickyWrapElement = doc.createElement('div');
+    stickyWrapElement.className = 'sticky';
+    stickyWrapElement.style.cssText = 'z-index:9; position: absolute; left: 0; top: 0;' + cssPrefix + 'transform: translateZ(9px);';
+    if (scroll.axis === 'y') {
+        stickyWrapElement.style.width = '100%';
+    } else {
+        stickyWrapElement.style.height = '100%';
+    }
+
+    Object.defineProperty(this, 'offset', {
+        set: function(v) {
+            if (scroll.axis ===  'y') {
+                stickyWrapElement.style.top = v + 'px';
+            } else {
+                stickyWrapElement.style.left = v + 'px';
+            }
+        }
+    });
+
+    var enable;
+    Object.defineProperty(this, 'enable', {
+        get: function() {
+            return enable;
+        },
+        set: function(v) {
+            enable = !!v;
+            if (enable) {
+                if (!stickyWrapElement.parentNode) {
+                    scroll.viewport.appendChild(stickyWrapElement);
+                }
+                stickyWrapElement.style.display = 'block';
+            } else {
+                stickyWrapElement.style.display = 'none';
+            }
+        }
+    });
+
+    var stickyList = [];
+
+    function checkSticky() {
+        if (!enable) return;
+
+        Array.prototype.slice.call(scroll.element.querySelectorAll('*[sticky="true"]')).forEach(function(el) {
+            el.setAttribute('sticky', 'initialized');
+            var offset = scroll.offset(el);
+            var top = offset.top;
+            for (var i = 0; i <= stickyList.length; i++) {
+                if (!stickyList[i] || top < stickyList[i].top) {
+                    stickyList.splice(i, 0, {
+                        top: top,
+                        el: el,
+                        pined: el.firstElementChild
+                    });
+                    break;
+                }
+            }
+        });
+
+        if (stickyList.length) {
+            var scrollOffset = scroll.axis === 'y'?scroll.getScrollTop():scroll.getScrollLeft();
+            for (var i = 0; i < stickyList.length; i++) {
+                if (scrollOffset < stickyList[i][scroll.axis === 'y'?'top':'left']) {
+                    break;
+                }
+            }
+
+            j = i - 1;
+            if (j > -1) {
+                if (!stickyList[j].pined.parentNode || stickyList[j].pined.parentNode === stickyList[j].el) {
+                    stickyWrapElement.innerHTML = '';
+                    stickyWrapElement.appendChild(stickyList[j].pined);
+                }
+            }
+
+            for (j++; j < stickyList.length; j++) {
+                if (stickyList[j].pined.parentNode !== stickyList[j].el) {
+                    stickyList[j].el.appendChild(stickyList[j].pined);
+                }
+            }
+        }
+    }
+
+    view.forceRepaint.enable = true;
+    scroll.addScrollingHandler(checkSticky);
+    scroll.addScrollendHandler(checkSticky);
+
+    view.checkSticky = checkSticky;
+}
+
+function Refresh(view) {
+    var that = this;
+    var scroll = view.scroll;
+
+    var refreshElement = doc.createElement('div');
+    refreshElement.className = 'refresh';
+    refreshElement.style.cssText = 'display: none; position: absolute; top: 0; left: 0; width: 0; height: 0; ' + cssPrefix + 'transform: translateZ(9px)';
+    if (scroll.axis === 'y') {
+        refreshElement.style.width = '100%';
+    } else {
+        refreshElement.style.height = '100%';
+    }
+
+    var enable = false;
+    Object.defineProperty(this, 'enable', {
+        get: function() {
+            return enable;
+        },
+        set: function(v) {
+            enable = v;
+            if (!!enable) {
+                if (!refreshElement.parentNode) {
+                    scroll.viewport.appendChild(refreshElement);
+                }
+                refreshElement.style.display = 'block';   
+            } else {
+                refreshElement.style.display = 'none';
+            }
+        }
+    });
+
+    Object.defineProperty(this, 'element', {
+        get: function() {
+            return refreshElement;
+        },
+        set: function(v) {
+            setHTMLElement(refreshElement, v);
+        }
+    });
+
+    Object.defineProperty(this, 'offset', {
+        set: function(v) {
+            if (scroll.axis === 'y') {
+                refreshElement.style.top = v + 'px';
+            } else {
+                refreshElement.style.left = v + 'px';
+            }
+        }
+    });
+
+    var width = 0;
+    Object.defineProperty(this, 'width', {
+        set: function(v) {
+            width = v;
+            if (scroll.axis === 'x') {
+                refreshElement.style.width = width + 'px';
+                refreshElement.style[stylePrefix + 'Transform'] = 'translateX(' + (-width) + 'px) translateZ(9px)';                
+            }
+        }
+    });
+
+    var height = 0;
+    Object.defineProperty(this, 'height', {
+        set: function(v) {
+            height = v;
+            if (scroll.axis === 'y') {
+                refreshElement.style.height = height + 'px';
+                refreshElement.style[stylePrefix + 'Transform'] = 'translateY(' + (-height) + 'px) translateZ(9px)';
+            }
+        }
+    });
+
+    var processingHandler;
+    Object.defineProperty(this, 'processingHandler', {
+        get: function() {
+            return processingHandler;
+        },
+        set: function(v) {
+            processingHandler = v;
+        }
+    });
+
+    var refreshHandler;
+    Object.defineProperty(this, 'refreshHandler', {
+        get: function() {
+            return refreshHandler;
+        },
+        set: function(v) {
+            refreshHandler = v;
+        }
+    });
+
+    var isRefresh;
+
+    scroll.addScrollingHandler(function(e) {
+        if (!enable || isRefresh) return;
+
+        var offset = scroll.axis === 'y'?scroll.getScrollTop():scroll.getScrollLeft();
+        offset = Math.min(offset, 0);
+
+        if (scroll.axis === 'y') {
+            refreshElement.style[stylePrefix + 'Transform'] = 'translateY(' + -(height + offset) + 'px) translateZ(9px)';
+        } else {
+            refreshElement.style[stylePrefix + 'Transform'] = 'translateX(' + -(width + offset) + 'px) translateZ(9px)';
+        }
+
+        if (offset < 0) {
+            processingHandler && processingHandler(-offset);
+        }
+    });
+
+
+    function pullingAnimation(callback) {
+        var refreshOffset = getTransformOffset(refreshElement)[scroll.axis];
+        var refreshDiff = 0 - refreshOffset;      
+        var elementOffset = getTransformOffset(scroll.element)[scroll.axis];
+        var elementDiff = (scroll.axis==='y'?height:width) - elementOffset;
+
+        var anim = new lib.animation(400, lib.cubicbezier.ease, 0, function(i1, i2) {
+            refreshElement.style[stylePrefix + 'Transform'] = 'translate' + scroll.axis.toUpperCase() + '(' + (refreshOffset + refreshDiff * i2) + 'px) translateZ(9px)';
+            scroll.element.style[stylePrefix + 'Transform'] = 'translate' + scroll.axis.toUpperCase() + '(' + (elementOffset + elementDiff * i2) + 'px)';
+        });
+
+        anim.onend(callback);
+
+        anim.play();
+    }
+
+    function reboundAnimation(callback) {
+        var refreshOffset = getTransformOffset(refreshElement)[scroll.axis];
+        var refreshDiff = -(scroll.axis==='y'?height:width) - refreshOffset;
+        var elementOffset = getTransformOffset(scroll.element)[scroll.axis];
+        var elementDiff = - elementOffset;
+
+        var anim = new lib.animation(400, lib.cubicbezier.ease, 0, function(i1, i2) {
+            refreshElement.style[stylePrefix + 'Transform'] = 'translate' + scroll.axis.toUpperCase() + '(' + (refreshOffset + refreshDiff * i2) + 'px) translateZ(9px)';
+            scroll.element.style[stylePrefix + 'Transform'] = 'translate' + scroll.axis.toUpperCase() + '(' + (elementOffset + elementDiff * i2) + 'px)';
+        });
+
+        anim.onend(callback);
+
+        anim.play();
+    }
+
+    scroll.addEventListener('pulldownend', function(e) {
+        if (!enable || isRefresh) return;
+        isRefresh = true;
+
+        var offset = scroll.getBoundaryOffset();
+        if (offset > (scroll.axis === 'y'?height:width)) {
+            scroll.disable();
+            pullingAnimation(function() {
+                if (refreshHandler) {
+                    refreshHandler(function() {
+                        reboundAnimation(function() {                        
+                            scroll.refresh();
+                            scroll.enable();
+                            isRefresh = false;
+                        });
+                    });    
+                } else {
+                    reboundAnimation(function() {                        
+                        scroll.refresh();
+                        scroll.enable();
+                        isRefresh = false;
+                    });
+                }
+            });
+        } else {
+            reboundAnimation(function() {
+                isRefresh = false;
+            });
+        }
+    }, false);
+}
+
+function Update(view) {
+    var that = this;
+    var scroll = view.scroll;
+
+    var updateElement = doc.createElement('div');
+    updateElement.className = 'update';
+    updateElement.style.cssText = 'display: none; position: absolute; bottom: 0; right: 0; width: 0; height: 0; ' + cssPrefix + 'transform: translateZ(9px)';
+    if (scroll.axis === 'y') {
+        updateElement.style.width = '100%';
+    } else {
+        updateElement.style.height = '100%';
+    }
+
+    var enable = false;
+    Object.defineProperty(this, 'enable', {
+        get: function() {
+            return enable;
+        },
+        set: function(v) {
+            enable = v;
+            if (!!enable) {
+                if (!updateElement.parentNode) {
+                    scroll.viewport.appendChild(updateElement);
+                }
+                updateElement.style.display = 'block';   
+            } else {
+                updateElement.style.display = 'none';
+            }
+        }
+    });
+
+    Object.defineProperty(this, 'element', {
+        get: function() {
+            return updateElement;
+        },
+        set: function(v) {
+            setHTMLElement(updateElement, v);
+        }
+    });
+
+    Object.defineProperty(this, 'offset', {
+        set: function(v) {
+            if (scroll.axis === 'y') {
+                updateElement.style.bottom = v + 'px';
+            } else {
+                updateElement.style.right = v + 'px';
+            }
+        }
+    });
+
+    var width = 0;
+    Object.defineProperty(this, 'width', {
+        set: function(v) {
+            width = v;
+            if (scroll.axis === 'x') {
+                updateElement.style.width = width + 'px';
+                updateElement.style[stylePrefix + 'Transform'] = 'translateX(' + (width) + 'px) translateZ(9px)';                
+            }
+        }
+    });
+
+    var height = 0;
+    Object.defineProperty(this, 'height', {
+        set: function(v) {
+            height = v;
+            if (scroll.axis === 'y') {
+                updateElement.style.height = height + 'px';
+                updateElement.style[stylePrefix + 'Transform'] = 'translateY(' + (height) + 'px) translateZ(9px)';
+            }
+        }
+    });
+
+    var processingHandler;
+    Object.defineProperty(this, 'processingHandler', {
+        get: function() {
+            return processingHandler;
+        },
+        set: function(v) {
+            processingHandler = v;
+        }
+    });
+
+    var updateHandler;
+    Object.defineProperty(this, 'updateHandler', {
+        get: function() {
+            return updateHandler;
+        },
+        set: function(v) {
+            updateHandler = v;
+        }
+    });
+
+    var isUpdating;
+    scroll.addScrollingHandler(function(e) {
+        if (!enable) return;
+
+        var offset = scroll.axis === 'y'?scroll.getScrollTop():scroll.getScrollLeft();
+        var maxOffset = scroll.axis === 'y'?scroll.getMaxScrollTop():scroll.getMaxScrollLeft();
+        offset = Math.max(offset, maxOffset);
+
+        if (scroll.axis === 'y') {
+            updateElement.style[stylePrefix + 'Transform'] = 'translateY(' + (maxOffset - offset + height) + 'px) translateZ(9px)';
+        } else  {
+            updateElement.style[stylePrefix + 'Transform'] = 'translateX(' + (maxOffset - offset + width) + 'px) translateZ(9px)';
+        }
+
+        if (isUpdating) return;
+
+        if (offset - maxOffset  < (scroll.axis === 'y'?height:width) * 0.7) {
+            processingHandler && processingHandler(offset - maxOffset);
+        } else {
+            if (updateHandler) {
+                isUpdating = true;
+                updateHandler(function() {
+                    if (scroll.axis === 'y') {
+                        updateElement.style[stylePrefix + 'Transform'] = 'translateY(' + (height) + 'px) translateZ(9px)';
+                    } else  {
+                        updateElement.style[stylePrefix + 'Transform'] = 'translateX(' + (width) + 'px) translateZ(9px)';
+                    }
+                    scroll.refresh();
+                    isUpdating = false;
+                });
+            }
+        }
+    });
 }
 
 ctrl.scrollview = ScrollView;
