@@ -487,7 +487,7 @@ function Lazyload(view) {
             bglist.forEach(function(bg) {
                 var image = bg.getAttribute('data-image');
                 if (image) {
-                    bg.removeAttribute(attr);
+                    bg.removeAttribute('data-image');
                     load(image, function() {
                         bg.style.backgroundImage = 'url(' + image + ')';    
                     });
