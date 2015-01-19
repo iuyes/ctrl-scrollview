@@ -44,7 +44,7 @@
 
 ### 代码示例
 
-[代码片段]()
+[代码片段](http://gitlab.alibaba-inc.com/mtb/ctrl-scrollview/snippets/1040)
 
 ## 高级功能
 
@@ -76,7 +76,7 @@
  - sticky属性为true（推荐），或者拥有`sticky`类名
  - 必须有固定高度
  - 其所有子元素会作为吸顶的元素来使用
- 
+
 
 	scrollView.sticky.enable = true;
 
