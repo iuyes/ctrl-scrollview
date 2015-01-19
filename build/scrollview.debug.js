@@ -38,7 +38,8 @@ function getTransformOffset(element) {
     return offset;
 }
 
-var has3d = 'WebKitCSSMatrix' in window && 'm11' in new WebKitCSSMatrix();
+var CSSMatrix = IEMobile?'MSCSSMatrix':'WebKitCSSMatrix';
+var has3d = !!Firefox || CSSMatrix in win && 'm11' in new win[CSSMatrix]();
 function getTranslate(x, y) {
     x = parseFloat(x);
     y = parseFloat(y);
@@ -334,7 +335,7 @@ function Fixed(view) {
     });
 
     if (scroll.axis === 'y') {
-        topFixedElement =  doc.createElement('div');
+        topFixedElement = doc.createElement('div');
         topFixedElement.className = 'top-fixed';
         topFixedElement.style.cssText = 'left: 0; top: 0; width: 100%;';
         Object.defineProperty(that, 'topElement', {
@@ -367,7 +368,6 @@ function Fixed(view) {
                 bottomFixedElement.style.top = v + 'px';
             }
         });
-
     } else {
         leftFixedElement = this.leftFixedElement = doc.createElement('div');
         leftFixedElement.className = 'left-fixed';
@@ -423,7 +423,6 @@ function Lazyload(view) {
             loadingCount++;
 
             var img = new Image();
-            img.src = url;
             img.onload = img.onreadystatechange = function() {
                 if (loaded[url] !== true) {
                     loaded[url].forEach(function(cb) {
@@ -434,6 +433,7 @@ function Lazyload(view) {
                 }
                 runLoadingQueue();
             }
+            img.src = url;
             runLoadingQueue();
         }
 
@@ -455,7 +455,7 @@ function Lazyload(view) {
     function checkLazyload(){
         if (!enable) return;
 
-        var elements = Array.prototype.slice.call(scroll.element.querySelectorAll('*[lazyload="true"]'));
+        var elements = Array.prototype.slice.call(scroll.element.querySelectorAll('.lazy, *[lazyload="true"]'));
 
         elements.filter(function(el){
             return scroll.isInView(el);
@@ -495,6 +495,7 @@ function Lazyload(view) {
             });
 
             lazyloadHandler && lazyloadHandler(el);
+            el.className = el.className.split(' ').filter(function(name) {return name !== 'lazy'}).join(' ');
             el.removeAttribute('lazyload');
         });
     }
@@ -600,7 +601,8 @@ function Sticky(view) {
     function checkSticky() {
         if (!enable) return;
 
-        Array.prototype.slice.call(scroll.element.querySelectorAll('*[sticky="true"]')).forEach(function(el) {
+        Array.prototype.slice.call(scroll.element.querySelectorAll('.sticky, *[sticky="true"]')).forEach(function(el) {
+            el.className = el.className.split(' ').filter(function(name) {return name !== 'sticky'}).join(' ');
             el.setAttribute('sticky', 'initialized');
             var offset = scroll.offset(el);
             var top = offset.top;

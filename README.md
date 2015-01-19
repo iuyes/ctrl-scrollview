@@ -2,7 +2,7 @@
 
 ## 最新版本
 
-**0.2.0**
+**0.2.1**
 
 ## 依赖库
 
@@ -16,8 +16,7 @@
 
 完整引用举例：
 
-    <link href="http://g.tbcdn.cn/mtb/??ctrl-loading/0.1.10/loading.css,ctrl-scrollview/0.2.0/scrollview.css" rel="stylesheet" type="text/css" />
-    <script src="http://g.tbcdn.cn/mtb/??lib-motion/1.0.5/motion.js,lib-gesture/1.1.11/gesture.js,lib-cubicbezier/1.0.0/cubicbezier.js,lib-animation/2.0.5/animation.js,lib-scroll/2.5.0/scroll.js,ctrl-scrollview/0.1.0/scrollview.js"></script>
+    <script src="http://g.tbcdn.cn/mtb/ctrl-scrollview/{{version}}/??scrollview_css.js, combo.js,scrollview.js"></script>
 
 ## 用Grunt打包
 
@@ -25,11 +24,77 @@
 
 运行 `grunt`，来对项目进行打包。关于Grunt的知识，请参见[gruntjs](http://gruntjs.com/);
 
-## 如何使用
+## 初始化
 
-### 初始化
+    var scrollView = new ctrl.scrollview(scrollOptions);
+    document.body.appendChild(scrollView.root);
 
-    var instance = new ctrl.scrollview();
-    document.body.appendChild(instance.root);
+### 参数
 
-### 标准初始化参数
+请参考[lib.scroll](http://gitlab.alibaba-inc.com/mtb/lib-scroll/blob/master/README.md)的初始化参数。
+
+### DOM结构
+
+	<div data-ctrl-name="scrollview">
+		<div class="scroll-wrap">
+			<div class="scroll-content">
+			</div>
+		</div>
+	</div>
+
+### 代码示例
+
+[代码片段]()
+
+## 高级功能
+
+### 顶部/底部固定元素
+
+    scrollView.fixed.enable = true;
+	scrollView.fixed.topElement = '<head>I\'m header</head>';
+    scrollView.fixed.bottomElement = '<footer>I\'m footer</footer>';
+
+### 懒加载
+
+被懒加载识别的元素，其特征为：
+
+  - lazyload属性为true（推荐），或者拥有`lazy`类名
+  - img元素的data-src属性不为空（对应img元素的src属性）
+  - 非img元素的data-image属性不为空（对应非img元素的background-image属性）
+
+
+    scrollView.lazyload.enable = true;
+    scrollView.lazyload.realtime = false; // 是否在滚动的时候执行
+    scrollView.lazyload.handler = function(el) {
+        // TODO 可以处理一些特殊的功能
+    }
+
+### 吸顶元素（sticky）
+
+被吸顶的元素，其特征为：
+
+ - sticky属性为true（推荐），或者拥有`sticky`类名
+ - 必须有固定高度
+ - 其所有子元素会作为吸顶的元素来使用
+ 
+
+	scrollView.sticky.enable = true;
+
+### 下拉刷新（pullRefresh）
+
+    scrollView.pullRefresh.enable = true;
+	scrollView.pullRefresh.handler = function(done) {
+        // 做一些刷新操作，完成后回调done方法。
+		done();
+    }
+
+
+### 上拉更新（pullUpdate）
+
+    scrollView.pullUpdate.enable = true;
+	scrollView.pullUpdate.handler = function(done) {
+        // 做一些更新操作，完成后回调done方法。
+		done();
+    }
+    
+
