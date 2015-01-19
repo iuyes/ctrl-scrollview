@@ -62,12 +62,13 @@
   - img元素的data-src属性不为空（对应img元素的src属性）
   - 非img元素的data-image属性不为空（对应非img元素的background-image属性）
 
-
+```
     scrollView.lazyload.enable = true;
     scrollView.lazyload.realtime = false; // 是否在滚动的时候执行
     scrollView.lazyload.handler = function(el) {
         // TODO 可以处理一些特殊的功能
     }
+```
 
 ### 吸顶元素（sticky）
 
@@ -77,8 +78,9 @@
  - 必须有固定高度
  - 其所有子元素会作为吸顶的元素来使用
 
-
+```
 	scrollView.sticky.enable = true;
+```
 
 ### 下拉刷新（pullRefresh）
 
